@@ -45,7 +45,7 @@ public class OrderPageObject {
     // Чекебокс для выбора черного цвета
     private By blackColorCheckbox = By.id("black");
     // Чекебокс для выбора серого цвета
-    private By grayColorCheckbox = By.id("gray");
+    private By grayColorCheckbox = By.id("grey");
     // Поле ввода комментария
     private By commentInput = By.xpath("//*[@id=\"root\"]/div/div[2]/div[2]/div[4]/input");
     // Кнопка перехода ко второму шагу в форме
@@ -54,12 +54,10 @@ public class OrderPageObject {
     private By submitButton = By.xpath("//*[@id=\"root\"]/div/div[2]/div[3]/button[2]");
     //Заголовок формы
     private By formTitle = By.xpath("//*[@id=\"root\"]/div/div[2]/div[1]");
-    // Кнопка возвращения к первому шагу в форме
-    private By goBackButton = By.xpath("//*[@id=\"root\"]/div/div[2]/div[3]/button[1]");
     // Кнопка подтверждения заказа
     private By checkoutButton = By.xpath("//*[@id=\"root\"]/div/div[2]/div[5]/div[2]/button[2]");
     // Кнопка просмотра статуса заказа после подтверждения формы
-    private By checkStatusButton = By.xpath("//*[@id='root']/button[text()='Посмотреть статус']");
+    private By checkStatusButton = By.xpath("//*[@id='root']//button[text()='Посмотреть статус']");
 
     public OrderPageObject(WebDriver driver) {
         this.driver = driver;
@@ -104,7 +102,9 @@ public class OrderPageObject {
         // Выбираем нужный пункт
         clickButton(stationInput);
         // Ищем элемент с нужной станцией
-        WebElement stationText = driver.findElement(By.xpath("//*[@class='select-search__options']//*[text()='"+station+"']"));
+        By stationElementXPath = By.xpath("//*[@class='select-search__options']//*[text()='" + station + "']");
+        new WebDriverWait(driver, 10).until(ExpectedConditions.visibilityOfElementLocated(stationElementXPath));
+        WebElement stationText = driver.findElement(stationElementXPath);
         // Ищем кнопку для этого элемента
         WebElement stationButton = (WebElement) ((JavascriptExecutor) driver).executeScript("return arguments[0].parentNode;", stationText);
         // Скроллим до этой кнопки и ккликаем по ней
@@ -187,20 +187,16 @@ public class OrderPageObject {
         return driver.findElement(formTitle).getText();
     }
 
-    public void clickGoBackButton() {
-        clickButton(goBackButton);
-    }
-
     public void clickCheckoutButton() {
         clickButton(checkoutButton);
     }
 
-    public void waitForCheckoutButton() {
-        new WebDriverWait(driver, 10).until(ExpectedConditions.elementToBeClickable(checkoutButton));
+    public void waitForCheckStatusButton() {
+        new WebDriverWait(driver, 10).until(ExpectedConditions.visibilityOfElementLocated(checkoutButton));
     }
 
-    public void waitForCheckStatusButton() {
-        new WebDriverWait(driver, 10).until(ExpectedConditions.elementToBeClickable(checkStatusButton));
+    public void waitForSecondStepToLoad() {
+        new WebDriverWait(driver, 10).until((driver) -> getFormTitleString().equals("Про аренду"));
     }
 
     public void clickCheckStatusButton() {

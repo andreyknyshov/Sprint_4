@@ -12,14 +12,16 @@ import pageObject.OrderPageObject;
 @RunWith(Parameterized.class)
 public class OrderFormTest {
     final String url = "https://qa-scooter.praktikum-services.ru/";
+    final String orderStatusURL = "https://qa-scooter.praktikum-services.ru/track?t";
     String name, surname, address, station, phone, date, comment;
+    OpenOrderPageType openOrderPageType;
     OrderPageObject.Color color;
     OrderPageObject.DaysCount daysCount;
 
     private OrderPageObject orderPageObject;
     private WebDriver chromeDriver;
 
-    public OrderFormTest(String name, String surname, String address, String station, String phone, String date, String comment, OrderPageObject.Color color, OrderPageObject.DaysCount daysCount) {
+    public OrderFormTest(String name, String surname, String address, String station, String phone, String date, String comment, OrderPageObject.Color color, OrderPageObject.DaysCount daysCount, OpenOrderPageType openOrderPageType) {
         this.name = name;
         this.surname = surname;
         this.address = address;
@@ -29,6 +31,7 @@ public class OrderFormTest {
         this.comment = comment;
         this.color = color;
         this.daysCount = daysCount;
+        this.openOrderPageType = openOrderPageType;
     }
 
     @BeforeClass
@@ -38,15 +41,7 @@ public class OrderFormTest {
 
     @Parameterized.Parameters
     public static Object[][] getParameters() {
-        return new Object[][]{
-                {"Пётр", "Авсенов", "Ул. Покрышкина, 17", "Черкизовская", "89885540982", "24.08.2022", "", OrderPageObject.Color.BLACK, OrderPageObject.DaysCount.ONE},
-                {"Алексей", "Кузнецов", "Ул. Покрышкина, 19", "Черкизовская", "89885540982", "25.09.2021", "Комментарий", OrderPageObject.Color.GRAY, OrderPageObject.DaysCount.TWO},
-                {"Николай", "Петров", "Ул. Покрышкина", "Тверская", "89885540982", "26.10.2020", "", OrderPageObject.Color.BLACK, OrderPageObject.DaysCount.THREE},
-                {"Владимир", "АИЙИЛЬЦИКЛИКИРМИЦИБАЙРАКТАЗИЙАНКАГРАМАНОГЛУ", "Ул. Покрышкина, 17", "Сокольники", "89885540982", "27.11.2019", "[][]%%&]", OrderPageObject.Color.GRAY, OrderPageObject.DaysCount.FOUR},
-                {"Максим", "Михайлов", "Индекс 679000", "Черкизовская", "89885540982", "28.12.2018", "", OrderPageObject.Color.BLACK, OrderPageObject.DaysCount.FIVE},
-                {"Данил", "Авсенов", "Кемерово", "Черкизовская", "89885540982", "29.01.2017", "123", OrderPageObject.Color.GRAY, OrderPageObject.DaysCount.SIX},
-                {"Кирилл", "Иванов", "Благовещенск", "Лубянка", "89885540982", "30.03.2016", "", OrderPageObject.Color.BLACK, OrderPageObject.DaysCount.SEVEN},
-        };
+        return new Object[][]{{"Пётр", "Авсенов", "Ул. Покрышкина, 17", "Черкизовская", "89885540982", "24.08.2022", "", OrderPageObject.Color.BLACK, OrderPageObject.DaysCount.ONE, OpenOrderPageType.FROM_NAV}, {"Алексей", "Кузнецов", "Ул. Покрышкина, 19", "Черкизовская", "89885540982", "25.09.2021", "Комментарий", OrderPageObject.Color.GRAY, OrderPageObject.DaysCount.TWO, OpenOrderPageType.FROM_SECTION},};
     }
 
     @Before
@@ -72,61 +67,42 @@ public class OrderFormTest {
     }
 
     @Test
-    public void canInputFirstFormStep() {
-        orderPageObject.clickOrderButtonNav();
-        fillFirstFormStep();
-        orderPageObject.clickNextButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Про аренду"));
-    }
-
-    @Test
-    public void canReturnToFirstStep() {
-        orderPageObject.clickOrderButtonNav();
-        fillFirstFormStep();
-        orderPageObject.clickNextButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Про аренду"));
-        orderPageObject.clickGoBackButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Для кого самокат"));
-    }
-
-    @Test
-    public void modalShowsAfterSubmittingForm() {
-        orderPageObject.clickOrderButtonNav();
-        fillFirstFormStep();
-        orderPageObject.clickNextButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Про аренду"));
-        fillSecondFormStep();
-        orderPageObject.clickSubmitButton();
-        orderPageObject.waitForCheckoutButton();
-    }
-
-    @Test
     public void canCheckoutForm() {
-        orderPageObject.clickOrderButtonNav();
+        // Открываем страницу с формой заказа
+        switch (openOrderPageType) {
+            case FROM_SECTION:
+                orderPageObject.clickOrderButtonSection();
+                break;
+            case FROM_NAV:
+            default:
+                orderPageObject.clickOrderButtonNav();
+        }
+        // Вводим данные в первый шаг формы
         fillFirstFormStep();
+        // Подтверждаем первый шаг формы, переходим на второй
         orderPageObject.clickNextButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Про аренду"));
+        // Ждём, пока откроется второй шаг формы
+        orderPageObject.waitForSecondStepToLoad();
+        // Вводим данные во второй шаг формы
         fillSecondFormStep();
+        // Кликаем на кнопку оправки формы
         orderPageObject.clickSubmitButton();
+        // Кликаем на кнопку подтверждения отправки формы
         orderPageObject.clickCheckoutButton();
+        // Ждём открытия попапа с кнопкой проверки заказа
         orderPageObject.waitForCheckStatusButton();
-    }
-
-    @Test
-    public void canSeeOrderStatusAfterFormSubmitting() {
-        orderPageObject.clickOrderButtonNav();
-        fillFirstFormStep();
-        orderPageObject.clickNextButton();
-        new WebDriverWait(chromeDriver, 10).until((driver) -> orderPageObject.getFormTitleString().equals("Про аренду"));
-        fillSecondFormStep();
-        orderPageObject.clickSubmitButton();
-        orderPageObject.clickCheckoutButton();
+        // Кликаем на кнопку проверки статуса заказа
         orderPageObject.clickCheckStatusButton();
-        new WebDriverWait(chromeDriver, 10).until(driver -> driver.getCurrentUrl().contains("https://qa-scooter.praktikum-services.ru/track?t"));
+        // Ждём перехода на страницу с данными о заказе
+        new WebDriverWait(chromeDriver, 10).until(driver -> driver.getCurrentUrl().contains(orderStatusURL));
     }
 
     @After
     public void teardown() {
         chromeDriver.quit();
+    }
+
+    private enum OpenOrderPageType {
+        FROM_NAV, FROM_SECTION
     }
 }
